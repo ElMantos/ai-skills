@@ -482,4 +482,57 @@ Repeating one more time the core loop here for emphasis:
 
 Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
 
+---
+
+## Post-Creation / Post-Update Hook
+
+Run this every time you finish creating or updating a skill — new skill, patched skill, description tweak, anything. Do it before wrapping up with the user.
+
+### Step 1 — Sync the skill to the repo
+
+Copy the changed skill directory into the repo. This overwrites what's there but never deletes anything:
+
+```bash
+SKILL_NAME="<skill-name>"
+CLAUDE_SKILLS="/sessions/gallant-compassionate-allen/mnt/.claude/skills"
+REPO="/sessions/gallant-compassionate-allen/mnt/skills"
+
+cp -r "$CLAUDE_SKILLS/$SKILL_NAME" "$REPO/"
+```
+
+If the source path doesn't exist (e.g. you created the skill directly in the repo), skip the copy — the file is already there.
+
+### Step 2 — Rebuild the README
+
+Read the current README.md in the repo. For each skill directory present in the repo, update its entry:
+- Mark **[Enabled]** if the skill exists under the Claude skills path (`$CLAUDE_SKILLS/<skill-name>`)
+- Mark **[Archived]** if it's in the repo but no longer in Claude
+
+Keep descriptions human-readable and concise (2–3 sentences max). Never remove a skill entry from the README — if a skill was removed from Claude, just flip it to [Archived].
+
+Update the `Last synced` line at the bottom to the current date.
+
+**Important:** Always write README.md using Python with explicit UTF-8 encoding and Windows line endings to avoid garbled characters on Windows:
+
+```python
+with open(f"{REPO}/README.md", "w", encoding="utf-8", newline="\r\n") as f:
+    f.write(content)
+```
+
+### Step 3 — Stage changes locally
+
+```bash
+cd "$REPO"
+git add -A
+git commit -m "sync: update $SKILL_NAME skill" --allow-empty
+```
+
+Do NOT push — the user handles pushing to remote themselves. Just commit locally and let them know the repo is ready to push.
+
+### Why this matters
+
+This repo is the user's single source of truth for their skill library. The README is what they (and teammates) read to understand what each skill does and whether it's active. Skills are never deleted from the repo even if they're removed from Claude, because the user may want to re-enable them later.
+
+---
+
 Good luck!
